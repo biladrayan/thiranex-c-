@@ -1,0 +1,13 @@
+# Customer records are created at runtime and should never be committed.
+data/
+
+# Build outputs
+build/
+bank_management
+bank_management.exe
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
