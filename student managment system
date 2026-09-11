@@ -1,0 +1,275 @@
+/*
+    STUDENT MANAGEMENT SYSTEM
+    --------------------------
+    A console-based C++ program that lets you:
+      1. Add a student record
+      2. Display all student records
+      3. Search for a student by ID
+      4. Update a student record
+      5. Delete a student record
+      6. Exit
+
+    Data is stored PERSISTENTLY in a text file called "students.txt"
+    so records are not lost when the program closes.
+*/
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+// ---------------------------------------------------
+// 1. The Student "record" - holds one student's data
+// ---------------------------------------------------
+struct Student {
+    int id;
+    string name;
+    int age;
+    string course;
+    float marks;
+};
+
+const string FILENAME = "students.txt";
+
+// ---------------------------------------------------
+// 2. Helper: Load ALL students from the file into memory
+// ---------------------------------------------------
+vector<Student> loadStudents() {
+    vector<Student> students;
+    ifstream file(FILENAME);
+
+    if (!file) {
+        // File doesn't exist yet (first run) - that's fine, return empty list
+        return students;
+    }
+
+    string line;
+    while (getline(file, line)) {
+        if (line.empty()) continue;
+
+        stringstream ss(line);
+        string idStr, ageStr, marksStr, name, course;
+
+        // We store each record as: id|name|age|course|marks
+        getline(ss, idStr, '|');
+        getline(ss, name, '|');
+        getline(ss, ageStr, '|');
+        getline(ss, course, '|');
+        getline(ss, marksStr, '|');
+
+        Student s;
+        s.id = stoi(idStr);
+        s.name = name;
+        s.age = stoi(ageStr);
+        s.course = course;
+        s.marks = stof(marksStr);
+
+        students.push_back(s);
+    }
+
+    file.close();
+    return students;
+}
+
+// ---------------------------------------------------
+// 3. Helper: Save ALL students from memory back to the file
+//    (used after add/update/delete so the file stays in sync)
+// ---------------------------------------------------
+void saveStudents(const vector<Student>& students) {
+    ofstream file(FILENAME); // overwrites the file with fresh data
+
+    for (const auto& s : students) {
+        file << s.id << "|" << s.name << "|" << s.age << "|"
+             << s.course << "|" << s.marks << "\n";
+    }
+
+    file.close();
+}
+
+// ---------------------------------------------------
+// 4. Add a new student
+// ---------------------------------------------------
+void addStudent() {
+    vector<Student> students = loadStudents();
+    Student s;
+
+    cout << "\n--- Add New Student ---\n";
+    cout << "Enter ID: ";
+    cin >> s.id;
+
+    // Check if this ID already exists
+    for (const auto& existing : students) {
+        if (existing.id == s.id) {
+            cout << "A student with this ID already exists!\n";
+            return;
+        }
+    }
+
+    cout << "Enter Name: ";
+    cin.ignore(); // clears leftover newline from previous cin >>
+    getline(cin, s.name);
+
+    cout << "Enter Age: ";
+    cin >> s.age;
+
+    cout << "Enter Course: ";
+    cin.ignore();
+    getline(cin, s.course);
+
+    cout << "Enter Marks: ";
+    cin >> s.marks;
+
+    students.push_back(s);
+    saveStudents(students);
+
+    cout << "Student added successfully!\n";
+}
+
+// ---------------------------------------------------
+// 5. Display all students
+// ---------------------------------------------------
+void displayStudents() {
+    vector<Student> students = loadStudents();
+
+    if (students.empty()) {
+        cout << "\nNo student records found.\n";
+        return;
+    }
+
+    cout << "\n--- All Student Records ---\n";
+    cout << "ID\tName\t\tAge\tCourse\t\tMarks\n";
+    cout << "----------------------------------------------------------\n";
+    for (const auto& s : students) {
+        cout << s.id << "\t" << s.name << "\t\t" << s.age << "\t"
+             << s.course << "\t\t" << s.marks << "\n";
+    }
+}
+
+// ---------------------------------------------------
+// 6. Search for a student by ID
+// ---------------------------------------------------
+void searchStudent() {
+    int id;
+    cout << "\nEnter Student ID to search: ";
+    cin >> id;
+
+    vector<Student> students = loadStudents();
+    for (const auto& s : students) {
+        if (s.id == id) {
+            cout << "\n--- Student Found ---\n";
+            cout << "ID: " << s.id << "\n";
+            cout << "Name: " << s.name << "\n";
+            cout << "Age: " << s.age << "\n";
+            cout << "Course: " << s.course << "\n";
+            cout << "Marks: " << s.marks << "\n";
+            return;
+        }
+    }
+
+    cout << "No student found with ID " << id << ".\n";
+}
+
+// ---------------------------------------------------
+// 7. Update an existing student's record
+// ---------------------------------------------------
+void updateStudent() {
+    int id;
+    cout << "\nEnter Student ID to update: ";
+    cin >> id;
+
+    vector<Student> students = loadStudents();
+    bool found = false;
+
+    for (auto& s : students) {
+        if (s.id == id) {
+            found = true;
+
+            cout << "Enter new Name: ";
+            cin.ignore();
+            getline(cin, s.name);
+
+            cout << "Enter new Age: ";
+            cin >> s.age;
+
+            cout << "Enter new Course: ";
+            cin.ignore();
+            getline(cin, s.course);
+
+            cout << "Enter new Marks: ";
+            cin >> s.marks;
+
+            break;
+        }
+    }
+
+    if (found) {
+        saveStudents(students);
+        cout << "Student record updated successfully!\n";
+    } else {
+        cout << "No student found with ID " << id << ".\n";
+    }
+}
+
+// ---------------------------------------------------
+// 8. Delete a student record
+// ---------------------------------------------------
+void deleteStudent() {
+    int id;
+    cout << "\nEnter Student ID to delete: ";
+    cin >> id;
+
+    vector<Student> students = loadStudents();
+    vector<Student> updatedList;
+    bool found = false;
+
+    for (const auto& s : students) {
+        if (s.id == id) {
+            found = true;
+            continue; // skip this one - effectively deletes it
+        }
+        updatedList.push_back(s);
+    }
+
+    if (found) {
+        saveStudents(updatedList);
+        cout << "Student record deleted successfully!\n";
+    } else {
+        cout << "No student found with ID " << id << ".\n";
+    }
+}
+
+// ---------------------------------------------------
+// 9. Main menu loop
+// ---------------------------------------------------
+int main() {
+    int choice;
+
+    do {
+        cout << "\n========= STUDENT MANAGEMENT SYSTEM =========\n";
+        cout << "1. Add Student\n";
+        cout << "2. Display All Students\n";
+        cout << "3. Search Student by ID\n";
+        cout << "4. Update Student\n";
+        cout << "5. Delete Student\n";
+        cout << "6. Exit\n";
+        cout << "===============================================\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: addStudent(); break;
+            case 2: displayStudents(); break;
+            case 3: searchStudent(); break;
+            case 4: updateStudent(); break;
+            case 5: deleteStudent(); break;
+            case 6: cout << "Exiting program. Goodbye!\n"; break;
+            default: cout << "Invalid choice. Please try again.\n";
+        }
+
+    } while (choice != 6);
+
+    return 0;
+}
